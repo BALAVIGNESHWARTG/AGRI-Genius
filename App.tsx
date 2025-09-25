@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { FarmerProfile, RecommendationPlan, AdaptivePlan, ViewState } from './types';
-import { generateInitialPlan, generateAdaptivePlan } from './services/geminiService';
+import { generateInitialPlan, generateAdaptivePlan, generateFarmImage } from './services/geminiService';
 import OnboardingForm from './components/OnboardingForm';
 import Dashboard from './components/Dashboard';
 import Header from './components/Header';
@@ -12,6 +12,8 @@ const App: React.FC = () => {
   const [farmerProfile, setFarmerProfile] = useState<FarmerProfile | null>(null);
   const [initialPlan, setInitialPlan] = useState<RecommendationPlan | null>(null);
   const [adaptedPlan, setAdaptedPlan] = useState<AdaptivePlan | null>(null);
+  const [farmImageUrl, setFarmImageUrl] = useState<string | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -21,11 +23,29 @@ const App: React.FC = () => {
     setLoadingMessage('Synthesizing planetary-scale ecological data...');
     setError(null);
     setAdaptedPlan(null); // Clear previous adaptive plan on new submission
+    setFarmImageUrl(null);
+    setIsImageLoading(false);
+
     try {
       const plan = await generateInitialPlan(profile);
       setFarmerProfile(profile);
       setInitialPlan(plan);
       setView(ViewState.DASHBOARD);
+
+      // After plan is loaded, start loading the image without blocking UI
+      setIsImageLoading(true);
+      generateFarmImage(plan.farmLayoutDescription)
+        .then(url => {
+          setFarmImageUrl(url);
+        })
+        .catch(err => {
+          console.error("Failed to generate farm image:", err);
+          // Don't set a global error, the component will show a fallback
+        })
+        .finally(() => {
+          setIsImageLoading(false);
+        });
+
     } catch (err) {
       console.error(err);
       setError('Failed to generate initial plan. The quantum cognitive engine may be recalibrating. Please try again.');
@@ -59,6 +79,8 @@ const App: React.FC = () => {
     setFarmerProfile(null);
     setInitialPlan(null);
     setAdaptedPlan(null);
+    setFarmImageUrl(null);
+    setIsImageLoading(false);
     setError(null);
   };
 
@@ -79,6 +101,8 @@ const App: React.FC = () => {
               adaptedPlan={adaptedPlan}
               onSimulateScenario={handleSimulateScenario}
               error={error}
+              farmImageUrl={farmImageUrl}
+              isImageLoading={isImageLoading}
             />
           );
         }

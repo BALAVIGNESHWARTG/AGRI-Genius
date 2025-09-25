@@ -137,3 +137,29 @@ export const generateAdaptivePlan = async (initialPlan: RecommendationPlan, scen
   const jsonText = response.text.trim();
   return JSON.parse(jsonText) as AdaptivePlan;
 };
+
+export const generateFarmImage = async (description: string): Promise<string> => {
+  const prompt = `Create a photorealistic, 3D holographic projection of a futuristic farm layout. The style should be high-tech, with glowing lines and data overlays, as if viewed through an augmented reality interface. The layout should be based on this description: "${description}"`;
+
+  try {
+    const response = await ai.models.generateImages({
+      model: 'imagen-4.0-generate-001',
+      prompt: prompt,
+      config: {
+        numberOfImages: 1,
+        outputMimeType: 'image/jpeg',
+        aspectRatio: '16:9',
+      },
+    });
+
+    if (response.generatedImages && response.generatedImages.length > 0) {
+        const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+        return `data:image/jpeg;base64,${base64ImageBytes}`;
+    } else {
+        throw new Error("Image generation failed, no images returned.");
+    }
+  } catch (error) {
+    console.error("Error generating farm image with Gemini:", error);
+    throw error;
+  }
+};

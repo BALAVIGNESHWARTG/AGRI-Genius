@@ -1,8 +1,6 @@
-
 import React from 'react';
 import type { FarmerProfile, RecommendationPlan, AdaptivePlan } from '../types';
-// FIX: Import LeafIcon from IconComponents to remove redundant local definition.
-import { AlertTriangleIcon, BotIcon, CheckCircle2Icon, DropletsIcon, LeafIcon, SproutIcon, ZapIcon } from './IconComponents';
+import { AlertTriangleIcon, BotIcon, CheckCircle2Icon, DropletsIcon, LeafIcon, SproutIcon, ZapIcon, MapPinIcon, TargetIcon, InfoIcon } from './IconComponents';
 
 interface DashboardProps {
   profile: FarmerProfile;
@@ -10,12 +8,15 @@ interface DashboardProps {
   adaptedPlan: AdaptivePlan | null;
   onSimulateScenario: (scenario: string) => void;
   error: string | null;
+  farmImageUrl: string | null;
+  isImageLoading: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ profile, initialPlan, adaptedPlan, onSimulateScenario, error }) => {
+const Dashboard: React.FC<DashboardProps> = ({ profile, initialPlan, adaptedPlan, onSimulateScenario, error, farmImageUrl, isImageLoading }) => {
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <InitialPlanDisplay plan={initialPlan} />
+      <FarmerProfileDisplay profile={profile} />
+      <InitialPlanDisplay plan={initialPlan} farmImageUrl={farmImageUrl} isImageLoading={isImageLoading} />
       <ScenarioSimulator onSimulate={onSimulateScenario} />
       {error && (
           <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center space-x-3" role="alert">
@@ -28,21 +29,61 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, initialPlan, adaptedPlan
   );
 };
 
-const PlanCard: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
+const FarmerProfileDisplay: React.FC<{ profile: FarmerProfile }> = ({ profile }) => (
+    <section className="bg-gray-800/50 backdrop-blur-md rounded-xl p-6 border border-white/10 shadow-lg">
+        <h2 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-purple-400">Mission Parameters</h2>
+        <div className="space-y-4">
+            <div>
+                <div className="flex items-center text-sm font-medium text-gray-300 mb-1">
+                    <MapPinIcon className="h-5 w-5 mr-2 text-sky-400" />
+                    <span>Location</span>
+                </div>
+                <p className="ml-7 text-gray-300">{profile.location}</p>
+            </div>
+            <div>
+                 <div className="flex items-center text-sm font-medium text-gray-300 mb-1">
+                    <TargetIcon className="h-5 w-5 mr-2 text-green-400" />
+                    <span>Primary Objective</span>
+                </div>
+                <p className="ml-7 text-gray-400">{profile.goals}</p>
+            </div>
+        </div>
+    </section>
+);
+
+const PlanCard: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; tooltipText: string; }> = ({ title, icon, children, tooltipText }) => (
     <div className="bg-gray-800/50 backdrop-blur-md rounded-xl p-6 border border-white/10 shadow-lg h-full">
-        <div className="flex items-center mb-4">
-            {icon}
-            <h3 className="text-xl font-semibold text-gray-200">{title}</h3>
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+                {icon}
+                <h3 className="text-xl font-semibold text-gray-200">{title}</h3>
+            </div>
+            <div className="relative group">
+                <InfoIcon className="h-5 w-5 text-gray-500 hover:text-sky-400 transition-colors cursor-pointer" />
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 text-xs text-center text-white bg-gray-700 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+                    {tooltipText}
+                </span>
+            </div>
         </div>
         <div className="text-gray-400 space-y-3">{children}</div>
     </div>
 );
 
-const InitialPlanDisplay: React.FC<{ plan: RecommendationPlan }> = ({ plan }) => (
+interface InitialPlanDisplayProps {
+    plan: RecommendationPlan;
+    farmImageUrl: string | null;
+    isImageLoading: boolean;
+}
+
+const InitialPlanDisplay: React.FC<InitialPlanDisplayProps> = ({ plan, farmImageUrl, isImageLoading }) => (
     <section>
         <h2 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-sky-400">Phase 1: Ecosystem Restoration & Crop Initialization</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <PlanCard title="Crop Varietals" icon={<SproutIcon className="h-6 w-6 mr-3 text-green-400" />}>
+            <PlanCard 
+                title="Crop Varietals" 
+                icon={<SproutIcon className="h-6 w-6 mr-3 text-green-400" />}
+                tooltipText="Selected for optimal yield and resilience based on 2040 climate projections and local soil genomics."
+            >
                 {plan.cropVarietals.map((item, index) => (
                     <div key={index}>
                         <p className="font-semibold text-gray-300">{item.name}</p>
@@ -50,7 +91,11 @@ const InitialPlanDisplay: React.FC<{ plan: RecommendationPlan }> = ({ plan }) =>
                     </div>
                 ))}
             </PlanCard>
-            <PlanCard title="Companion Flora" icon={<LeafIcon className="h-6 w-6 mr-3 text-green-500" />}>
+            <PlanCard 
+                title="Companion Flora" 
+                icon={<LeafIcon className="h-6 w-6 mr-3 text-green-500" />}
+                tooltipText="These species naturally deter pests, improve soil health by fixing nitrogen, and increase overall biodiversity."
+            >
                  {plan.companionFlora.map((item, index) => (
                     <div key={index}>
                         <p className="font-semibold text-gray-300">{item.name}</p>
@@ -58,7 +103,11 @@ const InitialPlanDisplay: React.FC<{ plan: RecommendationPlan }> = ({ plan }) =>
                     </div>
                 ))}
             </PlanCard>
-            <PlanCard title="Soil Protocol" icon={<CheckCircle2Icon className="h-6 w-6 mr-3 text-yellow-400" />}>
+            <PlanCard 
+                title="Soil Protocol" 
+                icon={<CheckCircle2Icon className="h-6 w-6 mr-3 text-yellow-400" />}
+                tooltipText="A bespoke microbial treatment, auto-delivered via drones, to enhance nutrient uptake and soil carbon sequestration."
+            >
                  {plan.soilProtocol.map((item, index) => (
                     <div key={index}>
                         <p className="font-semibold text-gray-300">{item.step}</p>
@@ -66,7 +115,11 @@ const InitialPlanDisplay: React.FC<{ plan: RecommendationPlan }> = ({ plan }) =>
                     </div>
                 ))}
             </PlanCard>
-             <PlanCard title="Water Management" icon={<DropletsIcon className="h-6 w-6 mr-3 text-sky-400" />}>
+             <PlanCard 
+                title="Water Management" 
+                icon={<DropletsIcon className="h-6 w-6 mr-3 text-sky-400" />}
+                tooltipText="Advanced techniques like atmospheric water harvesting and AI-optimized drip irrigation to minimize aquifer depletion."
+             >
                 <p className="font-semibold text-gray-300">{plan.waterManagement.technique}</p>
                 <p className="text-sm">{plan.waterManagement.projection}</p>
             </PlanCard>
@@ -76,8 +129,22 @@ const InitialPlanDisplay: React.FC<{ plan: RecommendationPlan }> = ({ plan }) =>
                     <h3 className="text-xl font-semibold text-gray-200">Holographic Farm Layout</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-                    <img src="https://picsum.photos/seed/agri2040/400/300" alt="Holographic farm layout" className="rounded-lg col-span-1" />
-                    <p className="text-gray-400 col-span-2">{plan.farmLayoutDescription}</p>
+                     <div className="col-span-1 aspect-video bg-gray-900/50 rounded-lg flex items-center justify-center border border-gray-700 p-2 text-center">
+                        {isImageLoading ? (
+                            <div className="flex flex-col items-center text-gray-500 animate-pulse">
+                                <BotIcon className="h-8 w-8" />
+                                <p className="text-xs mt-2">Rendering Projection...</p>
+                            </div>
+                        ) : farmImageUrl ? (
+                            <img src={farmImageUrl} alt="Holographic farm layout" className="rounded-md object-cover w-full h-full" />
+                        ) : (
+                            <div className="flex flex-col items-center text-gray-500">
+                                <BotIcon className="h-8 w-8" />
+                                <p className="text-xs mt-2">Projection not available</p>
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-gray-400 md:col-span-2">{plan.farmLayoutDescription}</p>
                 </div>
             </div>
         </div>
@@ -102,7 +169,11 @@ const AdaptivePlanDisplay: React.FC<{ plan: AdaptivePlan }> = ({ plan }) => (
     <section className="animate-fade-in-up">
         <h2 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400">Adaptive Response Protocol: {plan.scenario}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <PlanCard title="Immediate Actions" icon={<AlertTriangleIcon className="h-6 w-6 mr-3 text-red-400" />}>
+            <PlanCard 
+                title="Immediate Actions" 
+                icon={<AlertTriangleIcon className="h-6 w-6 mr-3 text-red-400" />}
+                tooltipText="Urgent, critical steps to mitigate the immediate impact of the unforeseen climate event."
+            >
                 {plan.immediateActions.map((item, index) => (
                     <div key={index} className="border-l-2 border-red-500/50 pl-3">
                         <p className="font-semibold text-gray-300">{item.action}</p>
@@ -110,7 +181,11 @@ const AdaptivePlanDisplay: React.FC<{ plan: AdaptivePlan }> = ({ plan }) => (
                     </div>
                 ))}
             </PlanCard>
-            <PlanCard title="Revised Projections" icon={<ZapIcon className="h-6 w-6 mr-3 text-orange-400" />}>
+            <PlanCard 
+                title="Revised Projections" 
+                icon={<ZapIcon className="h-6 w-6 mr-3 text-orange-400" />}
+                tooltipText="Updated forecasts for yield, biodiversity, and resource usage based on the new scenario simulation."
+            >
                 {plan.revisedProjections.map((item, index) => (
                     <div key={index}>
                         <p className="font-semibold text-gray-300">{item.area}</p>
